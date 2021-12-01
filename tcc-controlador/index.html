@@ -1,0 +1,659 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>TCC da Laranja - Status do Controlador</title>
+        <style>
+            body {
+                font-family: Arial,Helvetica,sans-serif;
+                background: #181818;
+                color: #EFEFEF;
+                font-size: 16px;
+            }
+
+            h2 {
+                font-size: 18px
+            }
+
+            section.main {
+                display: flex
+            }
+
+            #menu,section.main {
+                flex-direction: column
+            }
+
+            #menu {
+                display: none;
+                flex-wrap: nowrap;
+                min-width: 340px;
+                background: #363636;
+                padding: 8px;
+                border-radius: 4px;
+                margin-top: -10px;
+                margin-right: 10px;
+            }
+
+            #content {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: stretch
+            }
+
+            figure {
+                padding: 0px;
+                margin: 0;
+                -webkit-margin-before: 0;
+                margin-block-start: 0;
+                -webkit-margin-after: 0;
+                margin-block-end: 0;
+                -webkit-margin-start: 0;
+                margin-inline-start: 0;
+                -webkit-margin-end: 0;
+                margin-inline-end: 0
+            }
+
+            figure img {
+                display: block;
+                width: 100%;
+                height: auto;
+                border-radius: 4px;
+                margin-top: 8px;
+            }
+            @media screen and (max-width: 400px) {
+              .column {
+                width: 100%;
+              }
+            }
+
+            @media (min-width: 800px) and (orientation:landscape) {
+                #content {
+                    display:flex;
+                    flex-wrap: nowrap;
+                    align-items: stretch
+                }
+
+                figure img {
+                    display: block;
+                    max-width: 100%;
+                    max-height: calc(100vh - 40px);
+                    width: auto;
+                    height: auto
+                }
+
+                figure {
+                    padding: 0 0 0 0px;
+                    margin: 0;
+                    -webkit-margin-before: 0;
+                    margin-block-start: 0;
+                    -webkit-margin-after: 0;
+                    margin-block-end: 0;
+                    -webkit-margin-start: 0;
+                    margin-inline-start: 0;
+                    -webkit-margin-end: 0;
+                    margin-inline-end: 0
+                }
+            }
+
+            section#buttons {
+                display: flex;
+                flex-wrap: nowrap;
+                justify-content: space-between
+            }
+
+            #nav-toggle {
+                cursor: pointer;
+                display: block
+            }
+
+            #nav-toggle-cb {
+                outline: 0;
+                opacity: 0;
+                width: 0;
+                height: 0
+            }
+
+            #nav-toggle-cb:checked+#menu {
+                display: flex
+            }
+
+            .input-group {
+                display: flex;
+                flex-wrap: nowrap;
+                line-height: 22px;
+                margin: 5px 0
+            }
+
+            .input-group>label {
+                display: inline-block;
+                padding-right: 10px;
+                min-width: 47%
+            }
+
+            .input-group input,.input-group select {
+                flex-grow: 1
+            }
+
+            .range-max,.range-min {
+                display: inline-block;
+                padding: 0 5px
+            }
+
+            button {
+                display: block;
+                margin: 5px;
+                padding: 0 12px;
+                border: 0;
+                line-height: 28px;
+                cursor: pointer;
+                color: #fff;
+                background: #ff3034;
+                border-radius: 5px;
+                font-size: 16px;
+                outline: 0
+            }
+
+            button:hover {
+                background: #ff494d
+            }
+
+            button:active {
+                background: #f21c21
+            }
+
+            button.disabled {
+                cursor: default;
+                background: #a0a0a0
+            }
+
+            input[type=range] {
+                -webkit-appearance: none;
+                width: 100%;
+                height: 22px;
+                background: #363636;
+                cursor: pointer;
+                margin: 0
+            }
+
+            input[type=range]:focus {
+                outline: 0
+            }
+
+            input[type=range]::-webkit-slider-runnable-track {
+                width: 100%;
+                height: 2px;
+                cursor: pointer;
+                background: #EFEFEF;
+                border-radius: 0;
+                border: 0 solid #EFEFEF
+            }
+
+            input[type=range]::-webkit-slider-thumb {
+                border: 1px solid rgba(0,0,30,0);
+                height: 22px;
+                width: 22px;
+                border-radius: 50px;
+                background: #ff3034;
+                cursor: pointer;
+                -webkit-appearance: none;
+                margin-top: -11.5px
+            }
+
+            input[type=range]:focus::-webkit-slider-runnable-track {
+                background: #EFEFEF
+            }
+
+            input[type=range]::-moz-range-track {
+                width: 100%;
+                height: 2px;
+                cursor: pointer;
+                background: #EFEFEF;
+                border-radius: 0;
+                border: 0 solid #EFEFEF
+            }
+
+            input[type=range]::-moz-range-thumb {
+                border: 1px solid rgba(0,0,30,0);
+                height: 22px;
+                width: 22px;
+                border-radius: 50px;
+                background: #ff3034;
+                cursor: pointer
+            }
+
+            input[type=range]::-ms-track {
+                width: 100%;
+                height: 2px;
+                cursor: pointer;
+                background: 0 0;
+                border-color: transparent;
+                color: transparent
+            }
+
+            input[type=range]::-ms-fill-lower {
+                background: #EFEFEF;
+                border: 0 solid #EFEFEF;
+                border-radius: 0
+            }
+
+            input[type=range]::-ms-fill-upper {
+                background: #EFEFEF;
+                border: 0 solid #EFEFEF;
+                border-radius: 0
+            }
+
+            input[type=range]::-ms-thumb {
+                border: 1px solid rgba(0,0,30,0);
+                height: 22px;
+                width: 22px;
+                border-radius: 50px;
+                background: #ff3034;
+                cursor: pointer;
+                height: 2px
+            }
+
+            input[type=range]:focus::-ms-fill-lower {
+                background: #EFEFEF
+            }
+
+            input[type=range]:focus::-ms-fill-upper {
+                background: #363636
+            }
+
+            .switch {
+                display: block;
+                position: relative;
+                line-height: 22px;
+                font-size: 16px;
+                height: 22px
+            }
+
+            .switch input {
+                outline: 0;
+                opacity: 0;
+                width: 0;
+                height: 0
+            }
+
+            .slider {
+                width: 50px;
+                height: 22px;
+                border-radius: 22px;
+                cursor: pointer;
+                background-color: grey
+            }
+
+            .slider,.slider:before {
+                display: inline-block;
+                transition: .4s
+            }
+
+            .slider:before {
+                position: relative;
+                content: "";
+                border-radius: 50%;
+                height: 16px;
+                width: 16px;
+                left: 4px;
+                top: 3px;
+                background-color: #fff
+            }
+
+            input:checked+.slider {
+                background-color: #ff3034
+            }
+
+            input:checked+.slider:before {
+                -webkit-transform: translateX(26px);
+                transform: translateX(26px)
+            }
+
+            select {
+                border: 1px solid #363636;
+                font-size: 14px;
+                height: 22px;
+                outline: 0;
+                border-radius: 5px
+            }
+
+            .image-container {
+                position: relative;
+                min-width: 160px
+            }
+
+            .hidden {
+                display: none
+            }
+
+            .row {
+              display: flex;
+            }
+
+            .column {
+              flex: 50%;
+            }
+            .column-right {
+              align-items: right;
+            }
+            .column-left {
+              align-items: left;
+            }
+
+        </style>
+    </head>
+    <body>
+        <section class="main">
+            <h1 class="title">TCC da Laranja - Status do Controlador</h1>
+            <div class="row">
+              <div class="column column-right">
+                <h2> Status do Controlador </h2>
+                <h3>Estado: S<span class="read-status-action" id="state">0</span></h3>
+                <div class="row">
+                  <div class="column column-left">
+                    <h3>Saídas:</h3>
+                    sole11:<span class="read-status-action" id="sole11">0</span><br>
+                    sole12:<span class="read-status-action" id="sole12">0</span><br>
+                    sole21:<span class="read-status-action" id="sole21">0</span><br>
+                    sole22:<span class="read-status-action" id="sole22">0</span><br>
+                    cam:<span class="read-status-action" id="cam_en">0</span><br>
+                    motor11:<span class="read-status-action" id="motor11">0</span><br>
+                    motor12:<span class="read-status-action" id="motor12">0</span><br>
+                    motor1_vel:<span class="read-status-action" id="motor1_vel">0</span><br>
+                    reset_encoder:<span class="read-status-action" id="reset_encoder">0</span><br>
+                    <br>
+                    T1:<span class="read-status-action" id="T1">0</span><br>
+                    T1_isr_cont:<span class="read-status-action" id="T1_isr_c">0</span><br>
+                    T2:<span class="read-status-action" id="T2">0</span><br>
+                    T2_isr_cont:<span class="read-status-action" id="T2_isr_c">0</span><br>
+
+                  </div>
+                  <div class="column column-right">
+                    <h3>Entradas:</h3>
+                    d1:<span class="read-status-action" id="d1">0</span><br>
+                    d2:<span class="read-status-action" id="d2">0</span><br>
+                    cam:<span class="read-status-action" id="cam_read">0</span><br>
+                    start:<span class="read-status-action" id="start">0</span><br>
+                    u1:<span class="read-status-action" id="u1">0</span><br>  
+                    u2:<span class="read-status-action" id="u2">0</span><br>
+                    encpos:<span class="read-status-action" id="encpos">0</span><br>
+                    stop11:<span class="read-status-action" id="stop11">0</span><br>
+                    stop12:<span class="read-status-action" id="stop12">0</span><br>
+                    stop21:<span class="read-status-action" id="stop21">0</span><br>
+                    stop22:<span class="read-status-action" id="stop22">0</span><br>
+                  </div>
+                </div>
+                <h3>Tamanho de Heap livre:<span class="read-status-action" id="free_Heap">0</span></h3><br>
+              </div>
+              <div class="column column-left">
+                <div id="logo">
+                  <label for="nav-toggle-cb" id="nav-toggle"><h2>Mudar Variáveis</h2></label>
+                </div>
+                <div id="content">
+                    <div id="sidebar">
+                        <input type="checkbox" id="nav-toggle-cb" checked="checked">
+                        <nav id="menu">
+                            <!-- <div class="input-group" id="state-group">
+                                <label for="state_c">Estado</label>
+                                <select id="state_c" class="default-action">
+                                    <option value="0" selected="selected">S0 - Idle</option>
+                                    <option value="1">S1 - Escaneia</option>
+                                    <option value="2">S2 - Aproxima</option>
+                                    <option value="3">S3 - Agarra</option>
+                                    <option value="4">S4 - Verifica</option>
+                                    <option value="5">S5 - Volta</option>
+                                    <option value="6">S6 - Solta</option>
+                                    <option value="7">S7 - Volta rápido</option>
+                                </select>
+                            </div> -->
+                          
+                          <div class="input-group" id="start-group">
+                              <label for="start_c">Start</label>
+                              <div class="switch">
+                                <input id="start_c" type="checkbox" class="default-action" checked="unchecked">
+                                <label class="slider" for="start_c"></label>
+                              </div>
+                          </div>
+
+                            <div class="input-group" id="cam-group">
+                              <label for="cam_en_c">Cam</label>
+                              <div class="switch">
+                                <input id="cam_en_c" type="checkbox" class="default-action" checked="unchecked">
+                                <label class="slider" for="cam_en_c"></label>
+                              </div>
+                            </div>
+
+                            <div class="input-group" id="d1_value-group">
+                              <label for="d1_c">D1</label>
+                              <div class="range-min">0</div>
+                              <input type="range" id="d1_c" min="0" max="65000" value="0" class="default-action">
+                              <div class="range-max">65000</div>
+                            </div>
+                            <div class="input-group" id="d2_value-group">
+                              <label for="d2_c">D2</label>
+                              <div class="range-min">0</div>
+                              <input type="range" id="d2_c" min="0" max="65000" value="0" class="default-action">
+                              <div class="range-max">65000</div>
+                            </div>
+
+                            <div class="input-group" id="u1_value-group">
+                              <label for="u1_c">U1</label>
+                              <div class="range-min">0</div>
+                              <input type="range" id="u1_c" min="0" max="10000" value="0" class="default-action">
+                              <div class="range-max">10000</div>
+                            </div>
+                            <div class="input-group" id="u2_value-group">
+                              <label for="u2_c">U2</label>
+                              <div class="range-min">0</div>
+                              <input type="range" id="u2_c" min="0" max="10000" value="0" class="default-action">
+                              <div class="range-max">10000</div>
+                            </div>
+
+                            <div class="input-group" id="encpos_value-group">
+                              <label for="encpos_c">Posição do Encoder</label>
+                              <div class="range-min">0</div>
+                              <input type="range" id="encpos_c" min="0" max="255" value="0" class="default-action">
+                              <div class="range-max">255</div>
+                            </div>
+
+                            <div class="input-group" id="stop11-group">
+                              <label for="stop11_c">Fim de curso 11</label>
+                              <div class="switch">
+                                  <input id="stop11_c" type="checkbox" class="default-action" checked="unchecked">
+                                  <label class="slider" for="stop11_c"></label>
+                              </div>
+                            </div>
+
+                            <div class="input-group" id="stop12-group">
+                              <label for="stop12_c">Fim de curso 12</label>
+                              <div class="switch">
+                                  <input id="stop12_c" type="checkbox" class="default-action" checked="unchecked">
+                                  <label class="slider" for="stop12_c"></label>
+                              </div>
+                            </div>
+
+                            <div class="input-group" id="stop21-group">
+                              <label for="stop21_c">Fim de curso 21</label>
+                              <div class="switch">
+                                  <input id="stop21_c" type="checkbox" class="default-action" checked="unchecked">
+                                  <label class="slider" for="stop21_c"></label>
+                              </div>
+                            </div>
+
+                            <div class="input-group" id="stop22-group">
+                              <label for="stop22_c">Fim de curso 22</label>
+                              <div class="switch">
+                                  <input id="stop22_c" type="checkbox" class="default-action" checked="unchecked">
+                                  <label class="slider" for="stop22_c"></label>
+                              </div>
+                            </div>
+                        </nav>
+                    </div>
+                </div>
+              </div>
+            </div>
+        </section>
+        <script>
+document.addEventListener('DOMContentLoaded', function (event) {
+  var baseHost = document.location.origin
+
+  const hide = el => {
+    el.classList.add('hidden')
+  }
+  const show = el => {
+    el.classList.remove('hidden')
+  }
+
+  const disable = el => {
+    el.classList.add('disabled')
+    el.disabled = true
+  }
+
+  const enable = el => {
+    el.classList.remove('disabled')
+    el.disabled = false
+  }
+
+  const updateValue = (el, value, updateRemote) => {
+    updateRemote = updateRemote == null ? true : updateRemote
+    let initialValue
+    if (el.type === 'checkbox') {
+      initialValue = el.checked
+      value = !!value
+      el.checked = value
+    } else {
+      initialValue = el.value
+      el.value = value
+    }
+
+    if (updateRemote && initialValue !== value) {
+      updateConfig(el);
+    }
+  }
+
+  function updateConfig (el) {
+    let value
+    switch (el.type) {
+      case 'checkbox':
+        value = el.checked ? 1 : 0
+        break
+      case 'range':
+      case 'select-one':
+        value = el.value
+        break
+      case 'button':
+      case 'submit':
+        value = '1'
+        break
+      default:
+        return
+    }
+
+    const query = `${baseHost}/control?var=${el.id.slice(0,-2)}&val=${value}`
+
+    fetch(query)
+      .then(response => {
+        console.log(`request to ${query} finished, status: ${response.status}`)
+      })
+  }
+
+  // read initial values
+  fetch(`${baseHost}/status`)
+    .then(function (response) {
+      return response.json()
+    })
+    .then(function (state) {
+      document
+        .querySelectorAll('.default-action')
+        .forEach(el => {
+          updateValue(el, state[el.id], false)
+        })
+    })
+
+  // Attach default on change action
+  document
+    .querySelectorAll('.default-action')
+    .forEach(el => {
+      el.onchange = () => updateConfig(el)
+    })
+
+  // Custom actions
+  // start
+  const start = document.getElementById('start_c')
+  start.onchange = () => {
+    updateConfig(start)
+  }
+  // cam
+  const cam = document.getElementById('cam_en_c')
+  cam.onchange = () => {
+    updateConfig(cam)
+  }
+  // d1
+  const d1 = document.getElementById('d1_c')
+  d1.onchange = () => {
+    updateConfig(d1)
+  }
+  // d2
+  const d2 = document.getElementById('d2_c')
+  d2.onchange = () => {
+    updateConfig(d2)
+  }
+  // u1
+  const u1 = document.getElementById('u1_c')
+  u1.onchange = () => {
+    updateConfig(u1)
+  }
+  // u2
+  const u2 = document.getElementById('u2_c')
+  u2.onchange = () => {
+    updateConfig(u2)
+  }
+  // encpos
+  const encpos = document.getElementById('encpos_c')
+  encpos.onchange = () => {
+    updateConfig(encpos)
+  }
+  // stop11
+  const stop11 = document.getElementById('stop11_c')
+  stop11.onchange = () => {
+    updateConfig(stop11)
+  }
+  // stop12
+  const stop12 = document.getElementById('stop12_c')
+  stop12.onchange = () => {
+    updateConfig(stop12)
+  }
+  // stop21
+  const stop21 = document.getElementById('stop21_c')
+  stop21.onchange = () => {
+    updateConfig(stop21)
+  }
+  // stop22
+  const stop22 = document.getElementById('stop22_c')
+  stop22.onchange = () => {
+    updateConfig(stop22)
+  }
+})
+
+        </script>
+        <script>
+          setInterval(function ( ) {
+            getStatus();
+          }, 200 ) ;
+
+          function getStatus() {
+            fetch(`${document.location.origin}/status`)
+            .then(function (response) {
+              return response.json()
+            })
+            .then(function (state) {
+              document
+                .querySelectorAll('.read-status-action')
+                .forEach(el => {
+                  el.innerHTML = state[el.id];
+                })
+            })
+          }
+          </script>
+    </body>
+</html>

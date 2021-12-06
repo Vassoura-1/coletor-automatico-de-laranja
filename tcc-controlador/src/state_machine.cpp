@@ -4,8 +4,10 @@
 state_t state;
 uint64_t ext_T1;
 uint64_t ext_T2;
+uint64_t ext_T3;
 int ext_T1_icnt=0;
 int ext_T2_icnt=0;
+int ext_T3_icnt=0;
 
 // constante de distância do ultrassom usada em uma das transições
 #define TR_DISTANCIA_ULTRASSOM 10 //cm
@@ -20,8 +22,9 @@ int ext_T2_icnt=0;
 #define MOTOR_PARADO 0 
 
 // constantes de tempo para os timer
-#define TEMPO_TIMER_1 1000 //tempo em ms
-#define TEMPO_TIMER_2 500 //tempo em ms
+#define TEMPO_TIMER_1 500 //tempo em ms
+#define TEMPO_TIMER_2 200 //tempo em ms
+#define TEMPO_TIMER_3 1000 //tempo em ms
 
 // Timer de transição 1
 volatile bool Timer_1_flag;
@@ -41,12 +44,22 @@ void IRAM_ATTR onTimer_2_isr() {
     ext_T2_icnt++;
 }
 
+// Timer de transição 2
+volatile bool Timer_3_flag;
+hw_timer_t * hw_timer_3 = NULL;
+void IRAM_ATTR onTimer_3_isr() {
+    // ISR do timer usado no estado S3
+    Timer_3_flag = (state == S5) && true;
+    ext_T3_icnt++;
+}
+
 state_t initStateMachine(void){
     log_v(F("função initStateMachine"));
     state = S0;
 
     Timer_1_flag = false;
     Timer_2_flag = false;
+    Timer_3_flag = false;
 
     // Configuração dos alarmes baseados em timer
     // os timers rodam a 80Mz, presscaler de 80 faz cada tick equivaler a 1us
@@ -67,6 +80,14 @@ state_t initStateMachine(void){
     // define o tempo de chamada para a interrupt, e desativa o rearme automático
     timerAlarmWrite(hw_timer_2, TEMPO_TIMER_2*1000, false);
 
+    // timer da transição temporal t2
+    // utiliza o hardware timer 2, com preescaler de 80, edge triggered
+    hw_timer_2 = timerBegin(3, 80, true);
+    // define a função a ser chamada na interrupt
+    timerAttachInterrupt(hw_timer_3, &onTimer_3_isr, true);
+    // define o tempo de chamada para a interrupt, e desativa o rearme automático
+    timerAlarmWrite(hw_timer_3, TEMPO_TIMER_3*1000, false);
+
 
     return state;
 };
@@ -77,6 +98,7 @@ state_t resetStateMachine(void){
 
     Timer_1_flag = false;
     Timer_2_flag = false;
+    Timer_3_flag = false;
 
     return state;
 };
@@ -87,10 +109,10 @@ void setTimersInState(){
     switch (state)
     {
     // estados em que não há transições temporais
+    default:
     case S0:
     case S1:
     case S2:
-    case S5:
     case S6:
     case S7:
         break;
@@ -108,8 +130,12 @@ void setTimersInState(){
         timerAlarmEnable(hw_timer_1);
         timerWrite(hw_timer_1, 0);
         break;
-    
-    default:
+
+    case S5:
+        // arma o contador T1 para a transição temporal
+        timerWrite(hw_timer_3, 0);
+        timerAlarmEnable(hw_timer_3);
+        timerWrite(hw_timer_3, 0);
         break;
     }
 }
@@ -164,8 +190,14 @@ state_t updateStateMachine(sensor_readings_t * readings){
 
     case S5:
         if ((readings->stop21 == HIGH && readings->stop22 == LOW) 
-            && (readings->encpos > TR_POS_ENCODER_DESTAQUE ))
+            && (readings->encpos > TR_POS_ENCODER_DESTAQUE )){
+            timerAlarmDisable(hw_timer_3);
             state = S6;
+        } else if (Timer_3_flag == true)
+        {
+            state = S7;
+        }
+        Timer_3_flag = false;
         break;
 
     case S6:
@@ -197,6 +229,7 @@ state_t updateStateMachine(sensor_readings_t * readings){
     
     ext_T1 = timerRead(hw_timer_1)/1000;
     ext_T2 = timerRead(hw_timer_2)/1000;
+    ext_T3 = timerRead(hw_timer_3)/1000;
 
     return state;
 };

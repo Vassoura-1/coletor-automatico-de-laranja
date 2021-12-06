@@ -51,7 +51,7 @@ RETURN3:
     CALL_LabelComponent(X, Y+1, 4);   /* lower pixel */
 RETURN4:
 
-  RETURN;
+  RETURN
 }
 
 bool SizeFiltering(unsigned char width, unsigned char height,

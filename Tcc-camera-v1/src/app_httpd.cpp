@@ -156,9 +156,6 @@ esp_err_t vision_capture_handler(httpd_req_t *req){
 
     const size_t height = fb->height;
     const size_t width = fb->width;
-    
-    const size_t rbg_buf_len = height*width*3;
-    uint8_t * rbg_buf = (uint8_t *) heap_caps_malloc(rbg_buf_len,MALLOC_CAP_SPIRAM);
 
     const size_t vision_buf_len = height*width;
     uint8_t * vision_buf = (uint8_t *) heap_caps_malloc(vision_buf_len,MALLOC_CAP_SPIRAM);
@@ -172,8 +169,7 @@ esp_err_t vision_capture_handler(httpd_req_t *req){
     log_i("Free heap: %d", ESP.getFreeHeap());
     log_i("Free PSRAM: %d", ESP.getFreePsram());
 
-    if(!color_filtering(fb, rbg_buf, rbg_buf_len, 
-                        vision_buf, vision_buf_len, threshold)){
+    if(!color_filtering(fb, vision_buf, vision_buf_len, threshold)){
         log_e("Error applying color filtering");
         esp_camera_fb_return(fb);
         heap_caps_free(vision_buf);
@@ -232,9 +228,6 @@ esp_err_t vision_capture_handler2(httpd_req_t *req){
 
     const size_t height = fb->height;
     const size_t width = fb->width;
-    
-    const size_t rbg_buf_len = height*width*3;
-    uint8_t * rbg_buf = (uint8_t *) heap_caps_malloc(rbg_buf_len,MALLOC_CAP_SPIRAM);
 
     const size_t vision_buf_len = height*width;
     uint8_t * vision_buf = (uint8_t *) heap_caps_malloc(vision_buf_len,MALLOC_CAP_SPIRAM);
@@ -248,8 +241,7 @@ esp_err_t vision_capture_handler2(httpd_req_t *req){
     log_i("Free heap: %d", ESP.getFreeHeap());
     log_i("Free PSRAM: %d", ESP.getFreePsram());
 
-    if(!color_filtering(fb, rbg_buf, rbg_buf_len, 
-                        vision_buf, vision_buf_len, threshold)){
+    if(!color_filtering(fb, vision_buf, vision_buf_len, threshold)){
         log_e("Error applying color filtering");
         esp_camera_fb_return(fb);
         heap_caps_free(vision_buf);
@@ -324,13 +316,13 @@ esp_err_t vision_capture_handler3(httpd_req_t *req){
         return ESP_FAIL;
     }
 
+    int64_t fr_end = esp_timer_get_time();
+    log_i("Got image in: %ums\n", (uint32_t)((fr_end - fr_start)/1000));
+
     const size_t height = fb->height;
     const size_t width = fb->width;
 
     log_i("width %u, height %u", width, height);
-    
-    const size_t rbg_buf_len = height*width*3;
-    uint8_t * rbg_buf = (uint8_t *) heap_caps_malloc(rbg_buf_len,MALLOC_CAP_SPIRAM);
 
     const size_t vision_buf_len = height*width;
     uint8_t * vision_buf = (uint8_t *) heap_caps_malloc(vision_buf_len,MALLOC_CAP_SPIRAM);
@@ -341,11 +333,7 @@ esp_err_t vision_capture_handler3(httpd_req_t *req){
     httpd_resp_set_hdr(req, "Content-Disposition", "inline; filename=capture.jpg");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
 
-    log_i("Free heap: %d", ESP.getFreeHeap());
-    log_i("Free PSRAM: %d", ESP.getFreePsram());
-
-    if(!color_filtering(fb, rbg_buf, rbg_buf_len, 
-                        vision_buf, vision_buf_len, threshold)){
+    if(!color_filtering(fb, vision_buf, vision_buf_len, threshold)){
         log_e("Error applying color filtering");
         esp_camera_fb_return(fb);
         heap_caps_free(vision_buf);
@@ -355,28 +343,25 @@ esp_err_t vision_capture_handler3(httpd_req_t *req){
 
     esp_camera_fb_return(fb);
 
-    log_i("Free heap: %d", ESP.getFreeHeap());
-    log_i("Free PSRAM: %d", ESP.getFreePsram());
+    
+    fr_end = esp_timer_get_time();
+    log_i("Color filtering in: %ums\n", (uint32_t)((fr_end - fr_start)/1000));
 
+    // // apply size filtering
+    // uint8_t * vision_buf2 = (uint8_t *) heap_caps_calloc(vision_buf_len, 1, MALLOC_CAP_SPIRAM);
+    // uint8_t max_label = LabelImage(width,height,vision_buf,vision_buf,3000,100);
+    // if(!max_label || max_label == 255){
+    //     log_e("Error applying size filtering"); 
+    //     log_e("max_label = %d", max_label);
+    //     return ESP_FAIL;
+    // }
 
-    // uint8_t max_label = 2;
-    // apply size filtering
-    uint8_t * vision_buf2 = (uint8_t *) heap_caps_calloc(vision_buf_len, 1, MALLOC_CAP_SPIRAM);
-    uint8_t max_label = LabelImage(width,height,vision_buf,vision_buf,3000,100);
-    if(!max_label || max_label == 255){
-        log_e("Error applying size filtering"); 
-        log_e("max_label = %d", max_label);
-        return ESP_FAIL;
-    }
+    // for(int i = 0; i<vision_buf_len; i++){
+    //     vision_buf[i] = (vision_buf[i]>0)?2:0;
+    // }
 
-    // heap_caps_free(vision_buf);
-    // vision_buf = vision_buf2;
-    // vision_buf2 = NULL;
-
-    for(int i = 0; i<vision_buf_len; i++){
-        vision_buf[i] = (vision_buf[i]>0)?2:0;
-    }
-    max_label = 2;
+    // fr_end = esp_timer_get_time();
+    // log_i("Size filtering in: %ums\n", (uint32_t)((fr_end - fr_start)/1000));
 
     // log_i("Free heap: %d", ESP.getFreeHeap());
     // log_i("Free PSRAM: %d", ESP.getFreePsram());
@@ -384,33 +369,32 @@ esp_err_t vision_capture_handler3(httpd_req_t *req){
     // // apply edge detection
     if(!edge_detection(width, height, vision_buf, vision_buf_len)){
         log_e("Error applying edge detection");
+        heap_caps_free(vision_buf);
         return ESP_FAIL;
     }
 
-    int n_masked = 0;
-    for(int i = 0; i<vision_buf_len; i++){
-        if(vision_buf[i]==1) n_masked++;
-    }
-    log_d("contour pixels: %d\n", n_masked);
+    fr_end = esp_timer_get_time();
+    log_i("Edge detection in: %ums\n", (uint32_t)((fr_end - fr_start)/1000));
 
     // apply shape recognition
-    if(!shape_recognition(width, height, vision_buf, vision_buf_len, max_label, circle_buf_h, circle_buf_h_len, n_masked)){
+    if(!shape_recognition2(width, height, vision_buf, vision_buf_len, circle_buf_h, circle_buf_h_len)){
         log_e("Error applying shape recognition");
+        heap_caps_free(vision_buf);
         return ESP_FAIL;
     }
+    
+    fr_end = esp_timer_get_time();
+    log_i("Shape recognition in: %ums\n", (uint32_t)((fr_end - fr_start)/1000));
 
     for (int i = 0; i < (circle_buf_h_len/4); i++)
     {
-        /* i use 5 here since we are going to add at most 
-        3 chars, need a space for the end '\n' and need
-        a null terminator */
         if (circle_buf_h[4*i+3])
         {
             log_i("C.G %d: x %u, y %u, r %u, n %u", i+1,circle_buf_h[4*i],circle_buf_h[4*i+1],circle_buf_h[4*i+2],circle_buf_h[4*i+3]);
         }
     }
 
-    uint8_t scale = 255 / max_label;
+    uint8_t scale = 255 / 3;
 
     for(int i = 0; i<vision_buf_len; i++){
         vision_buf[i] = vision_buf[i]*scale;
@@ -419,20 +403,17 @@ esp_err_t vision_capture_handler3(httpd_req_t *req){
     size_t fb_len = 0;
     if(!fmt2jpg(vision_buf,vision_buf_len,width,height,PIXFORMAT_GRAYSCALE,80,&_jpg_buf,&_jpg_buf_len)){
         log_e("Convert to JPEG failed");
-        heap_caps_free(vision_buf2);
-        vision_buf2 = NULL;
+        heap_caps_free(vision_buf);
         return ESP_FAIL;
     }
     fb_len = _jpg_buf_len;
     res = httpd_resp_send(req, (const char *)_jpg_buf, _jpg_buf_len);
 
-    heap_caps_free(vision_buf2);
-    vision_buf2 = NULL;
     heap_caps_free(vision_buf);
     vision_buf = NULL;
     
     
-    int64_t fr_end = esp_timer_get_time();
+    fr_end = esp_timer_get_time();
     log_i("JPG: %uB %ums\n", (uint32_t)(fb_len), (uint32_t)((fr_end - fr_start)/1000));
 
     return res;

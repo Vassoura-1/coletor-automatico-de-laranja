@@ -29,7 +29,7 @@ static camera_config_t camera_config = {
     .pin_pclk = CAM_PIN_PCLK,
 
     //XCLK 20MHz or 10MHz for OV2640 double FPS (Experimental)
-    .xclk_freq_hz =20000000,
+    .xclk_freq_hz = 10000000,
     .ledc_timer = LEDC_TIMER_0,
     .ledc_channel = LEDC_CHANNEL_0,
 
@@ -37,7 +37,7 @@ static camera_config_t camera_config = {
     .frame_size = FRAMESIZE_QVGA,    //QQVGA-UXGA Do not use sizes above QVGA when not JPEG
 
     .jpeg_quality = 12, //0-63 lower number means higher quality
-    .fb_count = 1       //if more than one, i2s runs in continuous mode. Use only with JPEG
+    .fb_count = 4       //if more than one, i2s runs in continuous mode. Use only with JPEG
 };
 
 
@@ -47,7 +47,7 @@ esp_err_t init_camera()
   if(!psramFound()){
     camera_config.frame_size = FRAMESIZE_QQVGA;
     camera_config.jpeg_quality = 16;
-    camera_config.fb_count = 4;
+    camera_config.fb_count = 1;
   }
 
   // initialize the camera

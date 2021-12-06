@@ -7,6 +7,12 @@
     #define CAM_WRITE_P 13
     #define CAM_ENABLE_P 12
 
+    // Flash interno (destruido)
+    // #define FLASH_P 04
+
+    // Led interno
+    #define LED_B_P 33
+
     // I2C Pins (Qualquer um pode ser)
     // 02 - SDA ; 04 - SCL
     #define SPI_SDA_P 2

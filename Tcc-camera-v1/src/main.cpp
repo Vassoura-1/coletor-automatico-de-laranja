@@ -1,8 +1,8 @@
 #define USE_SPIFFS
 #define USE_WIFI
 #define USE_CAMERA_SERVER
-#define USE_SENSORS
-#define USE_ACTUATORS
+// #define USE_SENSORS
+// #define USE_ACTUATORS
 
 #include <Arduino.h>
 #include <SPIFFS.h>
@@ -60,9 +60,11 @@ bool vision_enabled = false;
 // machine vision buffer
 const size_t vision_buf_len = FB_HEIGHT*FB_WIDTH;
 uint8_t * vision_buf = (uint8_t *) malloc(vision_buf_len);//,MALLOC_CAP_SPIRAM);
+// uint8_t * vision_buf = (uint8_t *) malloc(vision_buf_len);//,MALLOC_CAP_SPIRAM);
 // RGB picture buffer
-const size_t rgb_buf_len = vision_buf_len*3;
-uint8_t * rgb_buf = (uint8_t *) malloc(rgb_buf_len);//,MALLOC_CAP_SPIRAM);
+// const size_t rgb_buf_len = vision_buf_len*3;
+// uint8_t * rgb_buf = (uint8_t *) malloc(rgb_buf_len);//,MALLOC_CAP_SPIRAM);
+
 
 // buffer to hold circle groups;
 const size_t circle_buf_len = MAX_CIRCLES*4;
@@ -77,162 +79,162 @@ bool fruit_detected_flag = false;
 camera_fb_t * fb = NULL; 
 void setup()
 {
-    Serial.begin(115200);
-    log_d("Total heap: %d", ESP.getHeapSize());
-    log_d("Free heap: %d", ESP.getFreeHeap());
+  Serial.begin(115200);
+  log_d("Total heap: %d", ESP.getHeapSize());
+  log_d("Free heap: %d", ESP.getFreeHeap());
 
-    // Initialize camera
-    init_camera();
-    sensor_t * s = esp_camera_sensor_get();
-    s->set_framesize(s, FRAMESIZE_DEF);
+  // Initialize camera
+  init_camera();
+  sensor_t * s = esp_camera_sensor_get();
+  s->set_framesize(s, FRAMESIZE_DEF);
 
-    #ifdef USE_SPIFFS
-      // Initialize SPIFFS file system
-      if(!SPIFFS.begin(true)){
-        log_e("An Error has occurred while mounting SPIFFS");
-        return;
-      }
+  #ifdef USE_SPIFFS
+    // Initialize SPIFFS file system
+    if(!SPIFFS.begin(true)){
+      log_e("An Error has occurred while mounting SPIFFS");
+      return;
+    }
+  #endif
+
+  #ifdef USE_WIFI
+    // Connect to wifi
+    WiFi.softAP(ssid, password);
+    log_i("ESP IP is: %s", WiFi.softAPIP().toString().c_str());
+    // Start OTA server
+    startOtaServer();
+    #ifdef USE_CAMERA_SERVER
+      // Start camera configuration server
+      startCameraServer();
+      log_i("HTTP Server ready");
     #endif
+  #endif
 
-    #ifdef USE_WIFI
-      // Connect to wifi
-      WiFi.softAP(ssid, password);
-      log_i("ESP IP is: %s", WiFi.softAPIP().toString().c_str());
-      // Start OTA server
-      startOtaServer();
-      #ifdef USE_CAMERA_SERVER
-        // Start camera configuration server
-        startCameraServer();
-        log_i("HTTP Server ready");
-      #endif
-    #endif
+  #ifdef USE_SENSORS
+    init_sensors();
+  #endif
 
-    #ifdef USE_SENSORS
-      init_sensors();
-    #endif
+  #ifdef USE_ACTUATORS
+    init_actuators();
+  #endif
 
-    #ifdef USE_ACTUATORS
-      init_actuators();
-    #endif
+  // Filtro de média móvel para benchmarks
+  ra_filter_init(&ra_filter, 10);
 
-    // Filtro de média móvel para benchmarks
-    ra_filter_init(&ra_filter, 10);
+  log_i("Free heap: %d", ESP.getFreeHeap());
+  log_i("Free PSRAM: %d", ESP.getFreePsram());
 
-    log_i("Free heap: %d", ESP.getFreeHeap());
-    log_i("Free PSRAM: %d", ESP.getFreePsram());
+  // leituras.cam_en = LOW;
 }
 
 
 void loop() // Loop runs on core 1, with priority 1
 { 
-    // reset watchdog
-    // vTaskDelay(1000);
-    vTaskDelay(10);
+  // reset watchdog
+  // vTaskDelay(1000);
+  vTaskDelay(200);
+  
+  log_d("Free heap: %d", ESP.getFreeHeap());
+  log_d("Free PSRAM: %d", ESP.getFreePsram());
 
-    log_d("Free heap: %d", ESP.getFreeHeap());
-    log_d("Free PSRAM: %d", ESP.getFreePsram());
+  #ifdef USE_SENSORS
+    read_sensors(&leituras);
+  #endif
 
-    #ifdef USE_SENSORS
-      read_sensors(&leituras);
-    #endif
+  log_i("d1 %d d2 %d",leituras.d1,leituras.d2);
 
-    if(leituras.cam_en) {
-      n_masked = 0;
-      // loop time for logging
-      if(!last_frame) {
-          last_frame = esp_timer_get_time();
-      }
+  if(leituras.cam_en) {
+    
+    // loop time for logging
+    if(!last_frame) {
+        last_frame = esp_timer_get_time();
+    }
 
-      // get picture
-      fb = esp_camera_fb_get();
-      if (!fb) {
-        log_e("Camera capture failed");
-        return;
-      }
-      
-      // apply color filtering
-      if(!color_filtering(fb, rgb_buf, rgb_buf_len, 
-                        vision_buf, vision_buf_len, VISION_THRESHOLD)){
-        log_e("Error applying color filtering");
-        esp_camera_fb_return(fb);
-        return;
-      }
-      
-      // free picture frame buffer
+    // get picture
+    fb = esp_camera_fb_get();
+    if (!fb) {
+      log_e("Camera capture failed");
+      return;
+    }
+    // apply color filtering
+    if(!color_filtering(fb, vision_buf, vision_buf_len, VISION_THRESHOLD)){
+      log_e("Error applying color filtering");
       esp_camera_fb_return(fb);
+      return;
+    }
 
-      // apply size filtering
-      uint8_t max_label = LabelImage(FB_WIDTH,FB_HEIGHT,vision_buf,vision_buf,MAX_COMPONENT_SIZE,MIN_COMPONENT_SIZE);
-      if(!max_label || max_label == 255){
-        log_e("Error applying size filtering");
-        log_e("max_label = %d", max_label);
-        return;
-      }
+    // free picture frame buffer
+    esp_camera_fb_return(fb);
 
-      for(int i = 0; i<vision_buf_len; i++){
-        vision_buf[i] = (vision_buf[i]>0)?2:0;
-        // n_masked++;
-      }
-      // log_d("Masked pixels: %d\n", n_masked);
-      max_label = 2;
+    // // apply size filtering
+    // uint8_t max_label = LabelImage(FB_WIDTH,FB_HEIGHT,vision_buf,vision_buf,MAX_COMPONENT_SIZE,MIN_COMPONENT_SIZE);
+    // if(!max_label || max_label == 255){
+    //   log_e("Error applying size filtering");
+    //   log_e("max_label = %d", max_label);
+    //   return;
+    // }
 
-      // apply edge detection
-      if(!edge_detection(FB_WIDTH, FB_HEIGHT, vision_buf, vision_buf_len)){
-        log_e("Error applying edge detection");
-        return;
-      }
+    // for(int i = 0; i<vision_buf_len; i++){
+    //   vision_buf[i] = (vision_buf[i]>0)?2:0;
+    //   // n_masked++;
+    // }
 
-      n_masked = 0;
-      for(int i = 0; i<vision_buf_len; i++){
-        if(vision_buf[i]==1) n_masked++;
-      }
-      log_d("contour pixels: %d\n", n_masked);
+    // log_d("Masked pixels: %d\n", n_masked);
+    // max_label = 2;
 
+    // apply edge detection
+    if(!edge_detection(FB_WIDTH, FB_HEIGHT, vision_buf, vision_buf_len)){
+      log_e("Error applying edge detection");
+      return;
+    }
 
-      // // apply shape recognition
-      if(!shape_recognition(FB_WIDTH, FB_HEIGHT, vision_buf, vision_buf_len, max_label, circle_buf, circle_buf_len, n_masked)){
-        log_e("Error applying shape recognition");
-        return;
-      }
+    // n_masked = 0;
+    // for(int i = 0; i<vision_buf_len; i++){
+    //   if(vision_buf[i]==1) n_masked++;
+    // }
+    // log_d("contour pixels: %d\n", n_masked);
 
-      // apply decision algorithm
-      if(!decision_algorithm(FB_WIDTH, FB_HEIGHT, circle_buf, circle_buf_len, leituras.d1, leituras.d2, &fruit_detected_flag)){
-        log_e("Error applying decision algorithm");  
-        memset(circle_buf,0,circle_buf_len);  
-        return;
-      }
-      
-      for (int i = 0; i < (circle_buf_len/4); i++)
-      {
+    // apply shape recognition
+    if(!shape_recognition2(FB_WIDTH, FB_HEIGHT, vision_buf, vision_buf_len, circle_buf, circle_buf_len)){
+      log_e("Error applying shape recognition");
+      return;
+    }
+
+    // apply decision algorithm
+    if(!decision_algorithm(FB_WIDTH, FB_HEIGHT, circle_buf, circle_buf_len, leituras.d1, leituras.d2, &fruit_detected_flag)){
+      log_e("Error applying decision algorithm");  
+      memset(circle_buf,0,circle_buf_len);  
+      return;
+    }
+
+    for (int i = 0; i < (circle_buf_len/4); i++)
+    {
         if (circle_buf[4*i+3])
         {
-          log_i("C.G %d: x %u, y %u, r %u, n %u", i+1,circle_buf[4*i],circle_buf[4*i+1],circle_buf[4*i+2],circle_buf[4*i+3]);
+            log_i("C.G %d: x %u, y %u, r %u, n %u", i+1,circle_buf[4*i],circle_buf[4*i+1],circle_buf[4*i+2],circle_buf[4*i+3]);
         }
-      }
+    }
 
-      // clear circle buffer
-      memset(circle_buf,0,circle_buf_len);  
-
-      saidas.cam = fruit_detected_flag;
-
-      // change outputs
-      #ifdef USE_ACTUATORS
-        update_actuators(saidas);
-      #endif
-
+    // clear buffers
+    saidas.cam = fruit_detected_flag;
       
-    //   // filter avg fps
+    // filter avg fps
     int64_t fr_end = esp_timer_get_time();        
     int64_t frame_time = fr_end - last_frame;
     last_frame = fr_end;
     frame_time /= 1000;
     uint32_t avg_frame_time = ra_filter_run(&ra_filter, frame_time);
 
-    //   // log avg fps
+    // log avg fps
     if(fruit_detected_flag){
-      log_i("detected: %d time in loop: %ums (%.1ffps), AVG: %ums (%.1ffps)\n", fruit_detected_flag,
-          (uint32_t)frame_time, 1000.0 / (uint32_t)frame_time,
-          avg_frame_time, 1000.0 / (uint32_t)avg_frame_time);
+      log_i("detected: %d", fruit_detected_flag);
+      log_i("time in loop: %ums (%.1ffps), AVG: %ums (%.1ffps)\n",
+            (uint32_t)frame_time, 1000.0 / (uint32_t)frame_time,
+            avg_frame_time, 1000.0 / (uint32_t)avg_frame_time);
     }
   }
+  
+  // change outputs
+  #ifdef USE_ACTUATORS
+    update_actuators(saidas);
+  #endif
 }

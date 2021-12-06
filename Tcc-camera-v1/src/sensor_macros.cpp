@@ -9,8 +9,8 @@
 #include <VL53L0X.h>
 
 // Distance sensor
-// #define VL53L0X_LONG_RANGE
-// #define VL53L0X_HIGH_SPEED
+#define VL53L0X_LONG_RANGE
+#define VL53L0X_HIGH_SPEED
 // #define VL53L0X_HIGH_ACCURACY
 VL53L0X d_sensor1;
 VL53L0X d_sensor2;
@@ -39,7 +39,7 @@ void init_distance_sensors(){
         log_i("Sensor d1 inicializado com sucesso. Endereço: %u", d_sensor1.getAddress());    
     digitalWrite(XShut2_P, HIGH);
     d_sensor2.setTimeout(500);
-    d_sensor2.setAddress(d_sensor2_adrr);
+    // d_sensor2.setAddress(d_sensor2_adrr);
     if (!d_sensor2.init())
         log_e("\n Erro ao inicializar sensor de distância 2 (endereco: %u)", d_sensor2_adrr);
     else
@@ -69,7 +69,7 @@ void init_distance_sensors(){
 
 void init_sensors(){
     // ESP-EN read
-    pinMode(CAM_ENABLE_P, INPUT);
+    pinMode(CAM_ENABLE_P, INPUT_PULLDOWN);
 
     init_distance_sensors();
     log_i("Sensores de distância prontos");
@@ -81,5 +81,5 @@ void read_sensors(sensor_readings_t * readings){
     readings->d1 = d_sensor1.readRangeSingleMillimeters();
     readings->d2 = d_sensor2.readRangeSingleMillimeters();
 
-    readings->cam_en = digitalRead(CAM_ENABLE_P);
+    // readings->cam_en = digitalRead(CAM_ENABLE_P);
 };

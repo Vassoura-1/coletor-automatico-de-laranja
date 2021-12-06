@@ -18,7 +18,7 @@ bool decision_algorithm(const uint8_t width, const uint8_t height,
     bool detected = false;
 
 
-    const uint16_t distance = (d1/2) + (d2/2); //mm
+    const uint16_t distance = d1;///2) + (d2/2); //mm
     const int max_n_circles = ((int)circle_buff_len)/4;
 
     const int center_x = width/2;

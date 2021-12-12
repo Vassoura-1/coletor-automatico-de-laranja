@@ -7,8 +7,8 @@
     typedef struct {
         bool cam_en = true; //flag que habilita detecção
         
-        uint16_t d1 = 300; //sensor de distância 1
-        uint16_t d2 = 300; //sensor de distância 2
+        uint16_t d1 = 200; //sensor de distância 1
+        uint16_t d2 = 200; //sensor de distância 2
     } sensor_readings_t;
 
     void init_sensors();

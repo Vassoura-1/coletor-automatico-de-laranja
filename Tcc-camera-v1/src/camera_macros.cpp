@@ -34,10 +34,10 @@ static camera_config_t camera_config = {
     .ledc_channel = LEDC_CHANNEL_0,
 
     .pixel_format = PIXFORMAT_JPEG, //YUV422,GRAYSCALE,RGB565,JPEG
-    .frame_size = FRAMESIZE_QVGA,    //QQVGA-UXGA Do not use sizes above QVGA when not JPEG
+    .frame_size = FRAMESIZE_QQVGA,    //QQVGA-UXGA Do not use sizes above QVGA when not JPEG
 
     .jpeg_quality = 12, //0-63 lower number means higher quality
-    .fb_count = 4       //if more than one, i2s runs in continuous mode. Use only with JPEG
+    .fb_count = 4     //if more than one, i2s runs in continuous mode. Use only with JPEG
 };
 
 
@@ -45,7 +45,7 @@ esp_err_t init_camera()
 {
   // allocate smaller buffers if no psram
   if(!psramFound()){
-    camera_config.frame_size = FRAMESIZE_QQVGA;
+    camera_config.frame_size = FRAMESIZE_96X96;
     camera_config.jpeg_quality = 16;
     camera_config.fb_count = 1;
   }
@@ -60,7 +60,7 @@ esp_err_t init_camera()
 
   // best configurations for vision
   sensor_t * s = esp_camera_sensor_get();
-  s->set_saturation(s, 0);
+  s->set_saturation(s, 2);
   s->set_whitebal(s, 0);
   s->set_awb_gain(s, 0);
   s->set_bpc(s, 1);

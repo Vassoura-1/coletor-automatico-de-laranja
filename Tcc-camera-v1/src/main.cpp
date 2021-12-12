@@ -1,8 +1,8 @@
 #define USE_SPIFFS
 #define USE_WIFI
 #define USE_CAMERA_SERVER
-// #define USE_SENSORS
-// #define USE_ACTUATORS
+#define USE_SENSORS
+#define USE_ACTUATORS
 
 #include <Arduino.h>
 #include <SPIFFS.h>
@@ -49,12 +49,12 @@ static int64_t last_frame = 0;
 // machine vision flag
 bool vision_enabled = false;
 
-#define FRAMESIZE_DEF FRAMESIZE_QQVGA
-#define FB_HEIGHT 120
-#define FB_WIDTH 160
+#define FRAMESIZE_DEF FRAMESIZE_96X96
+#define FB_HEIGHT 96
+#define FB_WIDTH 96
 #define VISION_THRESHOLD 120
 #define MAX_COMPONENT_SIZE 3000
-#define MIN_COMPONENT_SIZE 500
+#define MIN_COMPONENT_SIZE 200
 #define MAX_CIRCLES 40
 
 // machine vision buffer
@@ -131,7 +131,7 @@ void loop() // Loop runs on core 1, with priority 1
 { 
   // reset watchdog
   // vTaskDelay(1000);
-  vTaskDelay(200);
+  vTaskDelay(10);
   
   log_d("Free heap: %d", ESP.getFreeHeap());
   log_d("Free PSRAM: %d", ESP.getFreePsram());
@@ -141,6 +141,8 @@ void loop() // Loop runs on core 1, with priority 1
   #endif
 
   log_i("d1 %d d2 %d",leituras.d1,leituras.d2);
+  if(leituras.d1 > 600) leituras.d1 = 300;
+  if(leituras.d2 > 600) leituras.d2 = 300; 
 
   if(leituras.cam_en) {
     
@@ -187,17 +189,14 @@ void loop() // Loop runs on core 1, with priority 1
       return;
     }
 
-    // n_masked = 0;
-    // for(int i = 0; i<vision_buf_len; i++){
-    //   if(vision_buf[i]==1) n_masked++;
-    // }
-    // log_d("contour pixels: %d\n", n_masked);
 
     // apply shape recognition
     if(!shape_recognition2(FB_WIDTH, FB_HEIGHT, vision_buf, vision_buf_len, circle_buf, circle_buf_len)){
       log_e("Error applying shape recognition");
       return;
     }
+
+    // log_i("cheguei aqui");
 
     // apply decision algorithm
     if(!decision_algorithm(FB_WIDTH, FB_HEIGHT, circle_buf, circle_buf_len, leituras.d1, leituras.d2, &fruit_detected_flag)){
@@ -213,7 +212,7 @@ void loop() // Loop runs on core 1, with priority 1
             log_i("C.G %d: x %u, y %u, r %u, n %u", i+1,circle_buf[4*i],circle_buf[4*i+1],circle_buf[4*i+2],circle_buf[4*i+3]);
         }
     }
-
+    memset(circle_buf,0,circle_buf_len);  
     // clear buffers
     saidas.cam = fruit_detected_flag;
       
@@ -227,10 +226,10 @@ void loop() // Loop runs on core 1, with priority 1
     // log avg fps
     if(fruit_detected_flag){
       log_i("detected: %d", fruit_detected_flag);
-      log_i("time in loop: %ums (%.1ffps), AVG: %ums (%.1ffps)\n",
-            (uint32_t)frame_time, 1000.0 / (uint32_t)frame_time,
-            avg_frame_time, 1000.0 / (uint32_t)avg_frame_time);
     }
+    log_i("time in loop: %ums (%.1ffps), AVG: %ums (%.1ffps)\n",
+          (uint32_t)frame_time, 1000.0 / (uint32_t)frame_time,
+          avg_frame_time, 1000.0 / (uint32_t)avg_frame_time);
   }
   
   // change outputs

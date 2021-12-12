@@ -1,4 +1,5 @@
 // #define USE_LOAD_CELL
+// #define USE_DIST
 
 #include "pin_definitions.h"
 #include "sensor_macros.h"
